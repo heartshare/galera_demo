@@ -1,0 +1,25 @@
+---
+
+- hosts: "all"
+  become: True
+  become_user: root
+  gather_facts: False
+
+  pre_tasks:
+
+    - name: "Finding Python Interpreter"
+      raw: which /usr/bin/python || which /usr/bin/python3
+      register: py_interpreter
+      changed_when: py_interpreter.stdout != ""
+
+    - name: "Setting Temporary Python Interpreter"
+      set_fact:
+        ansible_python_interpreter: "{{ py_interpreter.stdout }}"
+
+- import_playbook: includes/system.yml
+- import_playbook: includes/mariadb.yml
+  when: provider == 'mariadb'
+- import_playbook: includes/percona.yml
+  when: provider == 'percona'
+- import_playbook: includes/load.yml
+- import_playbook: includes/maxscale.yml

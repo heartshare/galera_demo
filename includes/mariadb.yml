@@ -1,0 +1,111 @@
+---
+
+- hosts: "db"
+  become: true
+  become_user: root
+  vars_files:
+    - '../inventory/group_vars/{{ ansible_os_family|lower }}.yml'
+
+  tasks:
+
+  - name: "Installing New MariaDB Repo"
+    shell: curl -sS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo bash -s -- --mariadb-server-version=mariadb-{{ mariadb_version }} --mariadb-maxscale-version={{ maxscale_version }}
+    args:
+      warn: false
+
+  - name: "Installing Some Basic Packages"
+    package:
+      name: '{{ packages }}'
+      state: present
+    vars:
+      packages:
+      - '{{ git }}'
+      - '{{ mysql_python }}'
+      - '{{ nano }}'
+      - '{{ mariadb_backup }}'
+      - '{{ mariadb_server }}'
+      - '{{ mariadb_client }}'
+      - '{{ pigz }}'
+      - '{{ socat }}'
+
+  - name: "Creating MySQL Log Directory"
+    file:
+      path: /var/log/mysql
+      state: directory
+      mode: 0755
+      owner: mysql
+      group: mysql
+
+  - name: "Creating/Updating server.cnf"
+    template:
+      src: ../templates/base.j2
+      dest: /etc/my.cnf.d/server.cnf
+    when: ansible_os_family == 'RedHat'
+
+  - name: "Creating/Updating my.cnf"
+    template:
+      src: ../templates/base.j2
+      dest: /etc/mysql/my.cnf
+    when: ansible_os_family == 'Debian'
+
+  - name: "Creating Log Folder"
+    file:
+      path: /var/log/mysql
+      state: directory
+      mode: 0755
+      owner: mysql
+      group: mysql
+
+- hosts: "db3"
+  become: true
+  become_user: root
+
+  tasks:
+
+  - name: "Stopping MySQL On db3"
+    service:
+      name: mysql
+      state: stopped
+
+- hosts: "db2"
+  become: true
+  become_user: root
+
+  tasks:
+
+  - name: "Stopping MySQL On db2"
+    service:
+      name: mysql
+      state: stopped
+
+- hosts: "db1"
+  become: true
+  become_user: root
+
+  tasks:
+
+  - name: "Stopping MySQL On db1"
+    service:
+      name: mysql
+      state: stopped
+
+  - name: "Making Sure grastate.dat Exists"
+    file:
+      path: /var/lib/mysql/grastate.dat
+      state: touch
+      owner: mysql
+      group: mysql
+      mode: 0660
+
+  - name: "Setting Server 'Safe To Bootstrap'"
+    lineinfile:
+      dest: /var/lib/mysql/grastate.dat
+      regexp: '^safe_to_bootstrap: 0'
+      line: 'safe_to_bootstrap: 1'
+      backrefs: yes
+      state: present
+      create: no
+
+  - name: "Bootstrapping Galera db1"
+    command: galera_new_cluster
+    ignore_errors: yes

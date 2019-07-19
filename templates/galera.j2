@@ -1,0 +1,26 @@
+wsrep_cluster_address           	= gcomm://{{ hostvars.db1.ansible_host }},{{ hostvars.db2.ansible_host }},{{ hostvars.db3.ansible_host }}
+wsrep_cluster_name              	= {{ galera_name }}
+wsrep_node_address              	= {{ vars['ansible_' + ethernet_interface]['ipv4']['address'] }}
+wsrep_node_name                 	= {{ ansible_nodename }}
+wsrep_on                        	= ON
+wsrep_slave_threads             	= {{ ansible_processor_vcpus }}
+wsrep_provider_options          	= "gcs.fc_limit=32;gcache.size=2G;gcache.recover=yes"
+{% if provider == 'percona' %}
+{% if ansible_os_family == 'RedHat'%}
+wsrep_provider                  	= /usr/lib64/galera3/libgalera_smm.so
+{% else %}
+wsrep_provider                  	= /usr/lib/galera3/libgalera_smm.so
+{% endif %}
+wsrep_sst_method                	= xtrabackup-v2
+wsrep_sst_auth                  	= root:
+{% else %}
+{% if mariadb_version > 10.3 and ansible_os_family == 'RedHat'%}
+wsrep_provider                  	= /usr/lib64/galera-4/libgalera_smm.so
+{% elif mariadb_version <= 10.3 and ansible_os_family == 'RedHat'%}
+wsrep_provider                  	= usr/lib64/galera/libgalera_smm.so
+{% else %}
+wsrep_provider                  	= /usr/lib/galera/libgalera_smm.so
+{% endif %}
+wsrep_sst_method                	= mariabackup
+wsrep_sst_auth                  	= {{ sst_user }}:{{ sst_pass }}
+{% endif %}

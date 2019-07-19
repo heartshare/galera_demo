@@ -1,0 +1,119 @@
+###############################################################
+# General Settings
+###############################################################
+[client-server]
+socket                          	= {{ socket }}
+
+[mysql]
+default_character_set           	= utf8
+port                            	= {{ port }}
+socket                          	= {{ socket }}
+
+[mysqld_safe]
+basedir                         	= /usr/
+pid-file                        	= {{ pid }}
+
+[mysqld]
+basedir                         	= /usr/
+character_set_server            	= utf8
+collation_server                	= utf8_general_ci
+datadir                         	= /var/lib/mysql
+default_storage_engine          	= InnoDB
+event_scheduler
+init_connect                    	= 'SET NAMES utf8'
+performance_schema
+pid-file                        	= {{ pid }}
+port                            	= {{ port }}
+server_id                       	= {{ inventory_hostname.split('b')[-1] }}
+skip_name_resolve
+socket                          	= {{ socket }}
+tmpdir                          	= /tmp
+user                            	= mysql
+userstat                        	= ON
+
+################################################################
+# Safety, Security & Recovery
+################################################################
+explicit_defaults_for_timestamp 	= ON
+log_bin_trust_function_creators 	= ON
+max_allowed_packet              	= 32M
+max_connect_errors              	= 1000000
+myisam_recover_options          	= FORCE,BACKUP
+symbolic_links                  	= 0
+
+################################################################
+# Caches, Buffers & Connections
+################################################################
+interactive_timeout             	= 600
+max_connections                 	= 500
+max_heap_table_size             	= {{ [[(ansible_memtotal_mb/512),16]|max,384]|min|round|int }}M
+open_files_limit                	= 65535
+query_cache_size                	= 0
+query_cache_type                	= 0
+table_definition_cache          	= 4096
+table_open_cache                	= 4096
+tmp_table_size                  	= {{ [[(ansible_memtotal_mb/512),16]|max,384]|min|round|int }}M
+wait_timeout                    	= 600
+
+################################################################
+# MySQL Logs
+################################################################
+binlog_format                   	= ROW
+binlog_row_image                	= FULL
+expire_logs_days                	= 3
+log_bin                         	= /var/log/mysql/binlog
+log_bin_index                   	= /var/log/mysql/binlog.index
+log_error                       	= /var/log/mysql/error.log
+log_queries_not_using_indexes   	= OFF
+log_warnings                    	= 2
+long_query_time                 	= 5
+slow_query_log                  	= ON
+slow_query_log_file             	= /var/log/mysql/slow.log
+sync_binlog                     	= 0
+
+################################################################
+# InnoDB Variables
+################################################################
+innodb_autoinc_lock_mode        	= 2
+innodb_buffer_pool_instances    	= {{ [[(ansible_memtotal_mb/1024 * 0.75),8]|max,64]|min|round|int }}
+innodb_buffer_pool_size         	= {{ (ansible_memtotal_mb/1024 * 0.75)|round|int }}G
+innodb_data_file_path           	= ibdata1:12M:autoextend
+innodb_file_per_table           	= ON
+innodb_flush_log_at_trx_commit  	= 0
+innodb_flush_method             	= O_DIRECT
+innodb_io_capacity              	= {{ iops }}
+innodb_log_buffer_size          	= 8M
+innodb_log_file_size            	= {{ [[(((ansible_memtotal_mb/1024 * 0.33)/2)),1]|max,15]|min|round|int }}G
+innodb_log_files_in_group       	= 2
+innodb_page_cleaners            	= {{ [[(ansible_memtotal_mb/1024 * 0.75),8]|max,64]|min|round|int }}
+innodb_print_all_deadlocks      	= ON
+innodb_rollback_on_timeout      	= ON
+innodb_thread_concurrency       	= {{ (ansible_processor_vcpus * 2) }}
+
+################################################################
+# Galera Settings
+################################################################
+{% if galera_on == 1 %}
+{% include 'galera.j2' %}
+{% raw %}
+{% endraw %}
+{% else %}
+{% filter comment('plain',prefix='',postfix='') %}
+{% include 'galera.j2' %}
+{% endfilter %}
+{% endif %}
+
+################################################################
+# Galera SST Settings
+################################################################
+{% if galera_on == 1 %}
+{% include 'sst.j2' %}
+{% raw %}
+{% endraw %}
+{% else %}
+{% filter comment('plain',prefix='',postfix='') %}
+{% include 'sst.j2' %}
+{% endfilter %}
+{% endif %}
+{% raw %}
+{% endraw %}

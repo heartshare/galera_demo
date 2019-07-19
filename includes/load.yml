@@ -1,0 +1,120 @@
+---
+
+- hosts: "db1"
+  become: true
+  become_user: root
+
+  tasks:
+
+  - name: "Removing Anonymous MySQL Account"
+    mysql_user:
+      name: ''
+      host_all: yes
+      state: absent
+
+  - name: "Removing root@{{ ansible_nodename }}"
+    mysql_user:
+      name: root
+      host: '{{ ansible_nodename }}'
+      state: absent
+
+  - name: "Removing root@::1"
+    mysql_user:
+      name: root
+      host: '::1'
+      state: absent
+
+  - name: "Removing Test Database"
+    mysql_db:
+      name: test
+      state: absent
+
+  - name: "Adding SST User (Socket)"
+    mysql_user:
+      name: '{{ sst_user }}'
+      password: '{{ sst_pass }}'
+      host: 'localhost'
+      priv: '*.*:RELOAD,LOCK TABLES,REPLICATION CLIENT,CREATE TABLESPACE,PROCESS,SUPER,CREATE,INSERT,SELECT'
+      state: present
+
+  - name: "Adding SST User (TCP)"
+    mysql_user:
+      name: '{{ sst_user }}'
+      password: '{{ sst_pass }}'
+      host: '10.%'
+      priv: '*.*:RELOAD,LOCK TABLES,REPLICATION CLIENT,CREATE TABLESPACE,PROCESS,SUPER,CREATE,INSERT,SELECT'
+      state: present
+
+  - name: "Adding DBA User (Socket)"
+    mysql_user:
+      name: '{{ dba_user }}'
+      host: 'localhost'
+      password: '{{ dba_pass }}'
+      update_password: on_create
+      priv: '*.*:ALL,GRANT'
+      state: present
+
+  - name: "Adding DBA User (Loopback)"
+    mysql_user:
+      name: '{{ dba_user }}'
+      host: '127.0.0.1'
+      password: '{{ dba_pass }}'
+      update_password: on_create
+      priv: '*.*:ALL,GRANT'
+      state: present
+
+  - name: "Adding DBA User (TCP)"
+    mysql_user:
+      name: '{{ dba_user }}'
+      host: '%'
+      password: '{{ dba_pass }}'
+      update_password: on_create
+      priv: '*.*:ALL,GRANT'
+      state: present
+
+  - name: "Adding MaxScale User (TCP)"
+    mysql_user:
+      name: '{{ maxscale_user }}'
+      host: '10.%'
+      password: '{{ maxscale_pass }}'
+      update_password: on_create
+      priv: '*.*:REPLICATION CLIENT,REPLICATION SLAVE,SHOW DATABASES/mysql.db:SELECT/mysql.user:SELECT/mysql.tables_priv:SELECT'
+      state: present
+
+- hosts: "db2"
+  become: true
+  become_user: root
+
+  tasks:
+
+  - name: "Starting MySQL on db2"
+    service:
+      name: mysql
+      state: started
+
+- hosts: "db3"
+  become: true
+  become_user: root
+
+  tasks:
+
+  - name: "Starting MySQL on db3"
+    service:
+      name: mysql
+      state: started
+
+- hosts: "db1"
+  become: true
+  become_user: root
+
+  tasks:
+
+  - name: "Git Cloning Sample Data"
+    git:
+      repo: https://github.com/datacharmer/test_db.git
+      dest: /tmp/test_db
+
+  - name: "Loading Sample Data"
+    shell: mysql < employees.sql
+    args:
+      chdir: /tmp/test_db

@@ -1,0 +1,17 @@
+---
+
+provider: mariadb
+mariadb_version: 10.4
+maxscale_version: 2.3
+
+dba_pass: demo_password
+dba_user: dba
+ethernet_interface: eth1
+galera_name: MyGaleraCluster
+galera_on: 1
+iops: 500
+maxscale_pass: demo_password
+maxscale_user: maxscale
+port: 3306
+sst_pass: demo_password
+sst_user: sst

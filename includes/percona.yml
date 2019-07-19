@@ -1,0 +1,192 @@
+---
+
+- hosts: "db"
+  become: true
+  become_user: root
+  vars_files:
+    - '../inventory/group_vars/{{ ansible_os_family|lower }}.yml'
+
+  tasks:
+
+  - name: "Removing Possible Conflicts"
+    package:
+      name: '{{ packages }}'
+      state: absent
+    vars:
+      packages:
+        - '{{ percona_shared }}'
+        - '{{ mariadb_libs }}'
+        - '{{ mysql_python }}'
+
+  - name: "Installing Some Basic Packages"
+    package:
+      name: '{{ packages }}'
+      state: present
+    vars:
+      packages:
+      - '{{ git }}'
+      - '{{ nano }}'
+      - '{{ pigz }}'
+      - '{{ socat }}'
+
+  - name: "Getting Release Name"
+    shell: lsb_release -sc
+    run_once: true
+    register: release
+    when: ansible_os_family == 'Debian'
+
+  - name: "Getting Latest Percona Apt Repo"
+    get_url:
+      url: https://repo.percona.com/apt/percona-release_latest.{{ release.stdout }}_all.deb
+      dest: /tmp/percona-release_latest.{{ release.stdout }}_all.deb
+    when: ansible_os_family == 'Debian'
+
+  - name: "Installing Percona Apt Repo"
+    shell: dpkg -i /tmp/percona-release_latest.{{ release.stdout }}_all.deb
+    when: ansible_os_family == 'Debian'
+
+  - name: "Installing Percona Yum Repo"
+    package:
+      name: https://repo.percona.com/yum/percona-release-latest.noarch.rpm
+      state: present
+    when: ansible_os_family == 'RedHat'
+
+  - name: "Installing Percona XtraDB Server"
+    package:
+      name: "{{ packages }}"
+      state: present
+    vars:
+      packages:
+      - '{{ percona }}'
+
+  - name: "Installing Percona Extras"
+    package:
+      name: "{{ packages }}"
+      state: present
+    vars:
+      packages:
+      - '{{ xtrabackup }}'
+      - '{{ mysql_python }}'
+
+  - name: "Creating Log Directory"
+    file:
+      path: /var/log/mysql
+      state: directory
+      mode: 0755
+      owner: mysql
+      group: mysql
+
+  - name: "Removing Default MySQL Config"
+    shell: rm -rf /etc/my*
+
+  - name: "Removing Default Percona Config"
+    shell: rm -rf /etc/percona*
+
+  - name: "Creating Custom MySQL Config"
+    template:
+      src: ../templates/base.j2
+      dest: /etc/my.cnf
+    when: ansible_os_family == 'RedHat'
+
+  - name: "Creating Custom MySQL Config"
+    template:
+      src: ../templates/base.j2
+      dest: /etc/my.cnf
+    when: ansible_os_family == 'Debian'
+
+- hosts: "db3"
+  become: true
+  become_user: root
+
+  tasks:
+
+  - name: "Stopping MySQL On db3"
+    service:
+      name: mysql
+      state: stopped
+
+- hosts: "db2"
+  become: true
+  become_user: root
+
+  tasks:
+
+  - name: "Stopping MySQL On db2"
+    service:
+      name: mysql
+      state: stopped
+
+- hosts: "db1"
+  become: true
+  become_user: root
+
+  tasks:
+
+  - name: "Stopping PXC Bootstrap Service"
+    service:
+      name: mysql@bootstrap.service
+      state: stopped
+
+  - name: "Stopping PXC Service"
+    service:
+      name: mysql
+      state: stopped
+
+  - name: "Clearing Data Dir"
+    shell: rm -rf /var/lib/mysql/*
+
+  - name: "Preparing Data Dir"
+    shell: mysqld --user=mysql --datadir=/var/lib/mysql --initialize-insecure
+
+  - name: "Bootstrapping PXC"
+    systemd:
+      name: mysql@bootstrap.service
+      state: started
+
+- hosts: "db2"
+  become: true
+  become_user: root
+
+  tasks:
+
+  - name: "Starting PXC On db2"
+    service:
+      name: mysql
+      state: started
+
+- hosts: "db3"
+  become: true
+  become_user: root
+
+  tasks:
+
+  - name: "Starting PXC On db3"
+    service:
+      name: mysql
+      state: started
+
+- hosts: "db1"
+  become: true
+  become_user: root
+
+  tasks:
+
+  - name: "Stopping PXC Bootstrap Service"
+    service:
+      name: mysql@bootstrap.service
+      state: stopped
+
+  - name: "Starting PXC On db1"
+    service:
+      name: mysql
+      state: started
+
+- hosts: "db"
+  become: true
+  become_user: root
+
+  tasks:
+
+  - name: "Cleaning Installation Remnants"
+    shell: rm -rf /var/lib/percona-xtradb-cluster
+    when: ansible_os_family == 'Debian'

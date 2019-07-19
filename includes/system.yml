@@ -1,0 +1,56 @@
+---
+
+- hosts: "all"
+  become: true
+  become_user: root
+  vars_files:
+    - '../inventory/group_vars/{{ ansible_os_family|lower }}.yml'
+
+  tasks:
+
+  - name: "Setting Selinux To Permissive"
+    selinux:
+      policy: targeted
+      state: permissive
+    when: ansible_os_family == 'RedHat'
+
+  - name: "Installing Aptitude"
+    package:
+      name: 'aptitude'
+      state: latest
+      force_apt_get: true
+    when: ansible_os_family == 'Debian'
+
+  - name: "Install EPEL Release"
+    package:
+      name: 'epel-release'
+      state: latest
+    when: ansible_os_family == 'RedHat'
+
+  - name: "Setting Soft Open File Limits"
+    pam_limits:
+      domain: '*'
+      limit_type: soft
+      limit_item: nofile
+      value: 65535
+
+  - name: "Setting Hard Open File Limits"
+    pam_limits:
+      domain: '*'
+      limit_type: hard
+      limit_item: nofile
+      value: 65535
+
+  - name: "Adjusting OS Swappiness"
+    sysctl:
+      name: vm.swappiness
+      value: 1
+      state: present
+
+  - name: "Upgrading All Packages"
+    package:
+      name: '*'
+      state: latest
+
+  - name: "Rebooting Machines"
+    reboot:

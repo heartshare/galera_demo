@@ -1,0 +1,43 @@
+---
+
+boost: boost
+cmake: cmake
+development_tools: "@Development tools"
+expect: expect
+file: file
+git: git
+jemalloc: jemalloc
+libaio: libaio
+lz4_devel: lz4-devel
+lz4: lz4
+mariadb_backup: MariaDB-backup
+mariadb_client: MariaDB-client
+mariadb_libs: mariadb-libs
+mariadb_server: MariaDB-server
+mariadb: mariadb*
+maxscale_cdc_connector: maxscale-cdc-connector
+mlocate: mlocate
+mysql_python: MySQL-python
+nano: nano
+net_tools: net-tools
+nmap: nmap
+numactl_libs: numactl-libs
+openssl: openssl
+percona: Percona-XtraDB-Cluster-57
+percona_shared: Percona-Server-shared-56
+perl_DBI: perl-DBI
+perl: perl
+pid: /var/lib/mysql/mysql.pid
+pigz: pigz
+readline_dev: readline-devel
+rsync: rsync
+snappy: snappy
+socat: socat
+socket: /var/lib/mysql/mysql.sock
+tcl: tcl
+tcp_wrappers_devel: tcp_wrappers-devel
+tzdata: tzdata
+unzip: unzip
+version: 7
+xtrabackup: percona-xtrabackup-24
+zlib: zlib
