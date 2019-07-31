@@ -3,7 +3,7 @@
 
 #### About
 
-This automation project will use **Vagrant** to create 4 nodes in **Virtualbox**. The included **Ansible** playbook will work with both Ubuntu and CentOS systems.  You can choose to build a MariaDB Cluster or a Percona XtraDB Cluster. If you do not wish to build a virtual environment, you may alter the "inventory" file to include your own existing infrastructure and skip the **Vagrant** steps in the **Setup** section below.
+This automation project will use **Vagrant** to create 4 nodes in **Virtualbox**. The included **Ansible** playbook will work with both Ubuntu and CentOS systems.  You can choose to build a MariaDB Cluster or a Percona XtraDB Cluster. If you do not wish to build a virtual environment, you may alter the [hosts](inventory/hosts) file to include your own existing infrastructure and skip the **Vagrant** steps in the **Setup** section below.
 
 #### Prerequisites
 
@@ -15,7 +15,7 @@ This automation project will use **Vagrant** to create 4 nodes in **Virtualbox**
 #### Setup
 
 * `git clone https://github.com/toddstoffel/galera_demo.git`
-* `cd galera_demo` 
+* `cd galera_demo`
 * `vagrant plugin install vagrant-vbguest`
 * `vagrant up`
 * `ansible-playbook provision.yml` :arrow_left: **for MariaDB Cluster**
